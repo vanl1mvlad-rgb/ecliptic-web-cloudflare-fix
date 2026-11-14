@@ -1849,7 +1849,7 @@ const ADMIN_HTML = `<!doctype html>
         var pagination = null;
         var summary = analyticsSummary;
         do {
-          var data = await postJson('/api/admin/analytics', { offset: nextOffset, limit: analyticsPagination.limit });
+          var data = await postJson('/api/admin/analytics', { offset: nextOffset, limit: 5000 });
           allEvents = allEvents.concat(data.events || []);
           summary = data.summary || summary;
           pagination = data.pagination || { hasMore: false, nextOffset: allEvents.length, totalStored: allEvents.length };
