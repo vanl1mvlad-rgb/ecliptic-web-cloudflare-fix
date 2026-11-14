@@ -1849,7 +1849,7 @@ const ADMIN_HTML = `<!doctype html>
         var pagination = null;
         var summary = analyticsSummary;
         do {
-          var data = await postJson('/api/admin/analytics', { offset: nextOffset, limit: 5000 });
+          var data = await postJson('/api/admin/analytics', { offset: nextOffset, limit: 5000 }); if (data.pagination && data.pagination.hasMore) { var totalStored = Math.min(Number(data.pagination.totalStored || 50000), 50000); var offsets = []; for (var parallelOffset = 5000; parallelOffset < totalStored; parallelOffset += 5000) offsets.push(parallelOffset); var parallelPages = await Promise.all(offsets.map(function(parallelOffset) { return postJson('/api/admin/analytics', { offset: parallelOffset, limit: 5000 }); })); parallelPages.forEach(function(parallelPage) { data.events = (data.events || []).concat(parallelPage.events || []); data.summary = parallelPage.summary || data.summary; data.pagination = parallelPage.pagination || data.pagination; }); data.pagination.hasMore = false; data.pagination.nextOffset = data.events.length; }
           allEvents = allEvents.concat(data.events || []);
           summary = data.summary || summary;
           pagination = data.pagination || { hasMore: false, nextOffset: allEvents.length, totalStored: allEvents.length };
