@@ -11,9 +11,11 @@ type CustomerUser = {
   username?: string;
   email?: string;
   avatar?: string;
-};
+};const AUTH_USER_KEY = "ecliptic_authenticated_user_v1";
 
-const AUTH_USER_KEY = "ecliptic_authenticated_user_v1";
+
+
+
 
 function persistAuthUser(user: CustomerUser | null) {
   try {
@@ -238,7 +240,7 @@ export default function UserAuthButton({ initialUser = null }: UserAuthButtonPro
               height={20}
               
             />
-          >
+          
             Войти
           </button>
         )}
