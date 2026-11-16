@@ -142,7 +142,7 @@ export default function ProductSearchGrid({ products }: { products: ProductCard[
               <Link
                 key={product.slug}
                 href={`/products/${product.slug}`}
-                prefetch={false}
+                prefetch={index < 12}
                 data-analytics="product_open"
                 data-haptic-direct="true"
                 data-product={product.slug}
@@ -163,7 +163,7 @@ export default function ProductSearchGrid({ products }: { products: ProductCard[
                       className="product-icon product-grid-icon h-[64%] w-[64%] object-contain"
                       width={180}
                       height={180}
-                      loading="eager"
+                      loading={index < 12 ? "eager" : "lazy"}
                       fetchPriority={index < 12 ? "high" : "auto"}
                       decoding="async"
                       draggable={false}
