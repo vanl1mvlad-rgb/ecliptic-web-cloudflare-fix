@@ -27,8 +27,8 @@ function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function typingDelay(text: string) {
-  return Math.min(5000, Math.max(1800, 1200 + text.length * 18));
+function typingDelay() {
+  return 3000;
 }
 
 function isStartCommand(text: string) {
@@ -41,7 +41,7 @@ async function showTyping(chatId: number, token: string, text: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, action: "typing" }),
   }).catch(() => undefined);
-  await sleep(typingDelay(text));
+  await sleep(typingDelay());
 }
 
 type TelegramUpdate = {
