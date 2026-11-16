@@ -339,10 +339,23 @@ const readCachedProductStorage = unstable_cache(
   { tags: [PRODUCTS_CACHE_TAG], revalidate: 600 }
 );
 
+const readCachedCloudflareProductStorage = unstable_cache(
+  async () => {
+    const state = await readCloudflareState<ProductStorage>(PRODUCTS_FALLBACK_KEY).catch(() => null);
+    return state ? normalizeProductStorage(state) : null;
+  },
+  ["ecliptic-products-storage-cloudflare-v1"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: 15 }
+);
+
 function readProductStorage(options: ProductReadOptions = {}) {
-  // Cloudflare is the live source of truth. Do not wrap its no-store read in
-  // Next's data cache or the public catalog can show the previous admin save.
-  return options.cached && !hasCloudflareState() ? readCachedProductStorage() : readProductStorageUncached();
+  if (!options.cached) return readProductStorageUncached();
+  if (hasCloudflareState()) {
+    return readCachedCloudflareProductStorage().then(
+      (storage) => storage || readProductStorageUncached()
+    );
+  }
+  return readCachedProductStorage();
 }
 
 function shouldPreferCodeAuthoredOffers(storage: ProductStorage, slug: string) {
