@@ -25,6 +25,7 @@ type MotionState = {
   lastScrollY: number;
   nextTargetAt: number;
   lastRecoveryAt: number;
+  lastPersistAt: number;
   lastLaneId: string;
   lastFrameAt: number;
   isDragging: boolean;
@@ -45,6 +46,7 @@ type SafeLane = {
 };
 
 const BLOCKER_SELECTOR = ".contact-float";
+const POSITION_STORAGE_KEY = "ecliptic:referral-star-position";
 
 const CONTENT_SELECTOR = [
   ".products-grid",
@@ -248,6 +250,7 @@ export default function FloatingReferralStar() {
     lastScrollY: 0,
     nextTargetAt: 0,
     lastRecoveryAt: 0,
+    lastPersistAt: 0,
     lastLaneId: "",
     lastFrameAt: 0,
     isDragging: false,
@@ -301,6 +304,23 @@ export default function FloatingReferralStar() {
 
     let cancelled = false;
     const motion = motionRef.current;
+    if (!isReadyRef.current) {
+      try {
+        const saved = JSON.parse(window.sessionStorage.getItem(POSITION_STORAGE_KEY) || "null") as Partial<StarPosition> | null;
+        if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+          const savedX = saved.x as number;
+          const savedY = saved.y as number;
+          motion.x = savedX;
+          motion.y = savedY;
+          motion.lastSafeX = savedX;
+          motion.lastSafeY = savedY;
+          motion.lastLaneId = typeof saved.laneId === "string" ? saved.laneId : "";
+          isReadyRef.current = true;
+        }
+      } catch {
+        // Some privacy modes block sessionStorage; use the normal initial placement.
+      }
+    }
     const preservePosition = isReadyRef.current;
     if (!preservePosition) {
       motion.lastLaneId = "";
@@ -425,6 +445,18 @@ export default function FloatingReferralStar() {
         element.style.top = `${Math.round(renderY)}px`;
         element.style.opacity = isReadyRef.current ? "1" : "0";
         element.style.pointerEvents = "auto";
+        if (time - motion.lastPersistAt > 250) {
+          try {
+            window.sessionStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify({
+              x: Math.round(renderX),
+              y: Math.round(renderY),
+              laneId: motion.lastLaneId,
+            }));
+            motion.lastPersistAt = time;
+          } catch {
+            // Position persistence is optional in restricted browser modes.
+          }
+        }
       } else {
         if (time - motion.lastRecoveryAt > 900) {
           chooseTarget();
