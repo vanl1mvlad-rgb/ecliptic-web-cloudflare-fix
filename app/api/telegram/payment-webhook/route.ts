@@ -103,13 +103,15 @@ function sleep(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+const DEFAULT_AUTO_REPLY_DELAY_MS = 3000;
+
 async function showTyping(chatId: number, businessConnectionId?: string) {
   await telegram("sendChatAction", {
     chat_id: chatId,
     ...(businessConnectionId ? { business_connection_id: businessConnectionId } : {}),
     action: "typing",
   });
-  await sleep(1000);
+  await sleep(DEFAULT_AUTO_REPLY_DELAY_MS);
 }
 
 function applyAccountNoticeEmojiIds(text: string, ids: string[]) {
@@ -224,6 +226,12 @@ function normalizeProductQuery(value: string) {
     .replace(/(^|\s)звезд(?:а|ы|е|у|ой|ами)?(?=\s|$)/g, "$1звезды")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isInstantPurchaseRequest(message: string, product?: Product) {
+  if (!product) return false;
+  const normalized = normalizeProductQuery(message);
+  return /(?:куп(?:ить|и)|заказать|закажи|оформить|оформи|хочу|нужн|пополн)/i.test(normalized);
 }
 
 const PRODUCT_REQUEST_ALIASES: Record<string, string[]> = {
@@ -540,7 +548,8 @@ async function sendOrderInstructions(
   productData?: Product,
   sitePrice?: number,
   offerLabel?: string,
-  suppressWelcome = false
+  suppressWelcome = false,
+  skipTypingDelay = false
 ) {
   const category = extractOrderCategory(orderMessage);
   const product = extractOrderProduct(orderMessage);
@@ -627,7 +636,7 @@ async function sendOrderInstructions(
     });
     return Boolean(noticeResponse);
   }
-  await showTyping(chatId, businessConnectionId);
+  if (!skipTypingDelay) await showTyping(chatId, businessConnectionId);
   await telegram("sendMessage", {
     chat_id: chatId,
     ...(businessConnectionId ? { business_connection_id: businessConnectionId } : {}),
@@ -916,7 +925,8 @@ export async function processTelegramPaymentUpdate(update: TelegramUpdate, reque
             resolvedPayment.product,
             resolvedPayment.sitePrice,
             resolvedPayment.offerLabel,
-            !(await claimWelcomeWithin(message.chat.id).catch(() => true))
+            !(await claimWelcomeWithin(message.chat.id).catch(() => true)),
+            isInstantPurchaseRequest(message.text, resolvedPayment.product)
           )
         : await sendPriceAnswer(message.chat.id, resolvedPayment, message.business_connection_id);
       if (replied && shouldSendPaymentDetails) {
@@ -957,7 +967,8 @@ export async function processTelegramPaymentUpdate(update: TelegramUpdate, reque
       resolvedPayment.product,
       resolvedPayment.sitePrice,
       resolvedPayment.offerLabel,
-      !(await claimWelcomeWithin(message.chat.id).catch(() => true))
+      !(await claimWelcomeWithin(message.chat.id).catch(() => true)),
+      isInstantPurchaseRequest(message.text, resolvedPayment.product)
     );
     if (replied && resolvedPayment.hasPayment) {
       await savePendingTelegramOrder({
