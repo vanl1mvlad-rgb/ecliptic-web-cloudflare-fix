@@ -4,6 +4,7 @@ import { readAdminFallback, writeAdminFallback } from "./adminFallbackStore";
 import { readBlobJson, writeBlobJson } from "./blobJsonStore";
 import { LOCAL_SETTINGS_SEED, readLocalBackupSeed } from "./localBackupSeed";
 import { hasCloudflareState, readCloudflareState, writeCloudflareState } from "./cloudflareStateStore";
+import { unstable_cache } from "next/cache";
 
 const SITE_SETTINGS_KEY = "ecliptic:site:settings";
 const SITE_SETTINGS_FALLBACK_KEY = "site-settings";
@@ -40,9 +41,14 @@ async function readSiteSettings() {
 }
 
 export function getSiteSettings() {
-  // Settings are small and must reflect an admin save immediately.
-  return readSiteSettings();
+  return hasCloudflareState() ? readCachedSiteSettings() : readSiteSettings();
 }
+
+const readCachedSiteSettings = unstable_cache(
+  readSiteSettings,
+  ["ecliptic-site-settings-cloudflare-v1"],
+  { tags: [SITE_SETTINGS_CACHE_TAG], revalidate: 15 }
+);
 
 export async function saveSiteSettings(nextSettings: SiteSettings) {
   const settings = normalizeSiteSettings(nextSettings);
