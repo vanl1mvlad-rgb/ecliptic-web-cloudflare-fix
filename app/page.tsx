@@ -7,11 +7,11 @@ import { withOptimizedProductsImages } from "../lib/optimizedImages";
 import { getSiteSettings } from "../lib/siteSettings";
 import { defaultSiteSettings } from "../lib/siteSettingsDefaults";
 
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function HomePage() {
   const [allProducts, settings] = await Promise.all([
-    getProducts({ cached: false }),
+    getProducts({ cached: true }),
     getSiteSettings().catch(() => defaultSiteSettings),
   ]);
   const products = withOptimizedProductsImages(allProducts)
