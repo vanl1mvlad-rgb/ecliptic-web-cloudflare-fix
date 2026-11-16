@@ -4,6 +4,8 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import ProductSearchGrid from "./ProductSearchGrid";
+import GiveawayCta from "./GiveawayCta";
+import { products as baseProducts } from "../../lib/products";
 
 type PreviewProduct = {
   name: string;
@@ -15,7 +17,14 @@ type PreviewProduct = {
 export default function SwipeHomePreview() {
   const pathname = usePathname();
   const isProductPage = pathname.startsWith("/products/");
-  const [products, setProducts] = useState<PreviewProduct[]>([]);
+  const [products, setProducts] = useState<PreviewProduct[]>(() =>
+    baseProducts.map((product) => ({
+      name: product.name,
+      slug: product.slug,
+      icon: product.icon,
+      iconScale: product.iconScale,
+    }))
+  );
   const [isMounted, setIsMounted] = useState(isProductPage);
 
   useEffect(() => {
@@ -29,7 +38,7 @@ export default function SwipeHomePreview() {
   }, [isProductPage]);
 
   useEffect(() => {
-    if (!isProductPage || products.length) return;
+    if (!isProductPage) return;
     let active = true;
 
     fetch("/api/products", { cache: "no-store" })
@@ -42,7 +51,7 @@ export default function SwipeHomePreview() {
     return () => {
       active = false;
     };
-  }, [isProductPage, products.length]);
+  }, [isProductPage]);
 
   if (!isMounted) return null;
 
@@ -56,6 +65,7 @@ export default function SwipeHomePreview() {
               <img src="/loading-icon.png" alt="" width="80" height="80" className="h-[1.45em] w-[1.45em] object-contain" />
             </h1>
           </div>
+          <GiveawayCta />
           <ProductSearchGrid products={products} />
         </div>
       </main>
