@@ -301,15 +301,17 @@ export default function FloatingReferralStar() {
 
     let cancelled = false;
     const motion = motionRef.current;
-    isReadyRef.current = false;
-    motion.lastLaneId = "";
-    motion.nextTargetAt = 0;
+    const preservePosition = isReadyRef.current;
+    if (!preservePosition) {
+      motion.lastLaneId = "";
+      motion.nextTargetAt = 0;
+    }
     motion.isDragging = false;
     motion.inertiaX = 0;
     motion.inertiaY = 0;
     if (buttonRef.current) {
-      buttonRef.current.style.opacity = "0";
-      buttonRef.current.style.pointerEvents = "none";
+      buttonRef.current.style.opacity = preservePosition ? "1" : "0";
+      buttonRef.current.style.pointerEvents = preservePosition ? "auto" : "none";
     }
     motion.lastScrollY = window.scrollY;
     motion.lastFrameAt = 0;
@@ -445,7 +447,23 @@ export default function FloatingReferralStar() {
     const onResize = () => chooseTarget(true);
 
     const startTimer = window.setTimeout(() => {
-      chooseTarget(true);
+      if (!preservePosition) {
+        chooseTarget(true);
+      } else {
+        const { width, height } = measure();
+        if (!isSafePosition(motion.x, motion.y, width, height)) {
+          chooseTarget(true);
+        } else {
+          // Route changes must keep the star where the user left it.
+          motion.targetX = motion.x;
+          motion.targetY = motion.y;
+          motion.nextTargetAt = performance.now() + 3000 + Math.random() * 2800;
+          if (buttonRef.current) {
+            buttonRef.current.style.opacity = "1";
+            buttonRef.current.style.pointerEvents = "auto";
+          }
+        }
+      }
       frameRef.current = window.requestAnimationFrame(tick);
     }, 180);
 
