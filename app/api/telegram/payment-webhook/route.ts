@@ -75,6 +75,7 @@ async function telegram(method: string, body: Record<string, unknown>) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(8_000),
   }).catch(() => null);
   if (!response) {
     console.error("Telegram API request failed", method);
@@ -353,7 +354,7 @@ async function resolveOrderPayment(orderMessage: string, orderCode: string): Pro
   const parsed = parseOrderCode(orderCode);
   if (!parsed) return { amount: "", hasPayment: false };
 
-  const products = await getProducts({ cached: false }).catch(() => []);
+  const products = await getProducts({ cached: true }).catch(() => []);
   const product = products.find((candidate) => {
     if (parsed.alias) return compactProductCode(candidate.slug) === parsed.alias;
     return candidate.slug.toLowerCase().replace(/[^a-z0-9]/g, "").startsWith(parsed.legacyPrefix || "");
@@ -447,15 +448,11 @@ function chooseBudgetBundle(
 async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrderPayment> {
   const normalizedMessage = normalizeProductQuery(orderMessage);
   const isPriceQuestion = /(сколько\s+(?:стоит|стоят|это|будет|нужно|нужен|выходит)|сколько\s+.+?\s+сто(?:ит|ят)|какая\s+цена|стоимость|почем|цена|во\s+сколько)/i.test(normalizedMessage);
-  const isAvailabilityQuestion = /(^|\s)(есть|имеется|наличие|можно)(?=\s|$)/i.test(normalizedMessage);
-  const isStoreLinkRequest = /(купить|заказать|оформить|нужн|хочу|ссылк|скин|скид|магазин)/i.test(normalizedMessage)
-    || isPriceQuestion
-    || isAvailabilityQuestion;
-  if (!/(купить|заказать|оформить|нужн|хочу|пополн|ссылк|скин|скид|магазин)/i.test(normalizedMessage) && !isPriceQuestion && !isAvailabilityQuestion) {
-    return { amount: "", hasPayment: false };
-  }
 
-  const products = await getProducts({ cached: false }).catch(() => []);
+  // Bot traffic must use the short-lived catalog cache. A live Cloudflare
+  // state read can take several seconds or fail during a cold start; an empty
+  // result here makes the bot look random even though the catalog is healthy.
+  const products = await getProducts({ cached: true }).catch(() => []);
   for (const product of products) {
     const aliases = [
       product.name,
@@ -488,9 +485,9 @@ async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrde
     })
       || (hasOfferQualifier && offers.length === 1 ? offers[0] : undefined);
     if (!budgetBundle && !offer) {
-      return isStoreLinkRequest
-        ? { amount: "", product, hasPayment: false, priceOnly: true }
-        : { amount: "", product, hasPayment: false };
+      // A recognized product name is enough to return its canonical page link,
+      // even when the customer did not include the word "купить".
+      return { amount: "", product, hasPayment: false, priceOnly: true };
     }
 
     // Never recalculate a price from the customer's wording. Both a concrete
@@ -835,7 +832,9 @@ async function handleDecision(update: TelegramUpdate) {
 export async function processTelegramPaymentUpdate(update: TelegramUpdate, request?: Request) {
   const botToken = token();
   if (!botToken) return NextResponse.json({ ok: false, error: "TELEGRAM_BOT_TOKEN is not configured" }, { status: 500 });
-  if (request) await ensurePrimaryTelegramWebhook(request, botToken);
+  // Registration is best-effort maintenance. It must not delay or block the
+  // reply to the update that Telegram is currently delivering.
+  if (request) void ensurePrimaryTelegramWebhook(request, botToken);
   if (update.business_connection?.is_enabled && update.business_connection.user_chat_id) {
     await rememberBusinessManagerChat(update.business_connection.user_chat_id).catch(() => undefined);
   }
@@ -875,7 +874,7 @@ export async function processTelegramPaymentUpdate(update: TelegramUpdate, reque
     if (!orderCode && isPaymentDetailsRequest(message.text)) {
       const context = await getTelegramProductContext(message.chat.id).catch(() => null);
       if (context) {
-        const products = await getProducts({ cached: false }).catch(() => []);
+        const products = await getProducts({ cached: true }).catch(() => []);
         const product = products.find((candidate) => candidate.slug === context.productSlug);
         if (product) {
           const contextPayment: ResolvedOrderPayment = {
