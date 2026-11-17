@@ -245,6 +245,11 @@ function isInstantPurchaseRequest(message: string, product?: Product) {
   return /(?:куп(?:ить|и)|заказать|закажи|оформить|оформи|хочу|нужн|пополн)/i.test(normalized);
 }
 
+function hasProductRequestIntent(message: string) {
+  const normalized = normalizeProductQuery(message);
+  return /(?:куп(?:ить|и)|заказать|закажи|оформить|оформи|хочу|нужн|пополн|сколько|стоимость|цена|почем|ссылк|где\s+(?:купить|оформить)|как\s+(?:купить|заказать|оформить))/i.test(normalized);
+}
+
 const PRODUCT_REQUEST_ALIASES: Record<string, string[]> = {
   netflix: ["нетфликс", "нетфлик", "netflix"],
   "delta-force": ["дельта", "дельта форс", "delta force", "дф", "df"],
@@ -518,6 +523,9 @@ function chooseBudgetBundle(
 }
 
 async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrderPayment> {
+  // Product names can appear in ordinary conversation. Never turn a casual
+  // mention into a catalog link or payment flow without a clear request.
+  if (!hasProductRequestIntent(orderMessage)) return { amount: "", hasPayment: false };
   const normalizedMessage = normalizeProductQuery(orderMessage);
   const isPriceQuestion = /(сколько\s+(?:стоит|стоят|это|будет|нужно|нужен|выходит)|сколько\s+.+?\s+сто(?:ит|ят)|какая\s+цена|стоимость|почем|цена|во\s+сколько)/i.test(normalizedMessage);
 
@@ -952,6 +960,11 @@ export async function processTelegramPaymentUpdate(update: TelegramUpdate, reque
       ? await resolveOrderPayment(message.text, orderCode)
       : await resolveProductRequest(message.text);
     if (!orderCode && isPaymentDetailsRequest(message.text)) {
+      const pendingOrder = await getPendingTelegramOrder(message.chat.id).catch(() => null);
+      if (!pendingOrder) {
+        await noteTelegramChatActivity(message.chat.id).catch(() => undefined);
+        return NextResponse.json({ ok: true, ignored: "payment-details-without-order" });
+      }
       const context = await getTelegramProductContext(message.chat.id).catch(() => null);
       if (context) {
         const products = await getProducts({ cached: true }).catch(() => []);
@@ -993,7 +1006,10 @@ export async function processTelegramPaymentUpdate(update: TelegramUpdate, reque
     if (!orderCode && resolvedPayment.priceOnly) {
       // A concrete offer is enough to provide payment details. Do not gate
       // this on chat history: a first-time customer can place a precise order.
-      const shouldSendPaymentDetails = Boolean(resolvedPayment.quoteOnly && resolvedPayment.hasPayment);
+      const shouldSendPaymentDetails = Boolean(
+        resolvedPayment.hasPayment
+        && isInstantPurchaseRequest(message.text, resolvedPayment.product)
+      );
       const replied = shouldSendPaymentDetails
         ? await sendOrderInstructions(
             message.chat.id,
