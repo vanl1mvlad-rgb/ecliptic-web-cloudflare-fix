@@ -661,7 +661,7 @@ async function sendOrderInstructions(
 }
 
 async function sendDailyGreeting(chatId: number, businessConnectionId?: string) {
-  const text = "Здравствуйте, добро пожаловать в Ecliptic Store. Напишите, какой товар или услугу вы хотите оформить.";
+  const text = "Здравствуйте, добро пожаловать в Ecliptic Store.";
   await showTyping(chatId, businessConnectionId);
   const response = await telegram("sendMessage", {
     chat_id: chatId,
