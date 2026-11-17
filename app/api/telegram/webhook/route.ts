@@ -242,7 +242,10 @@ export async function POST(request: Request) {
 
   const token = botToken();
   if (!token) return NextResponse.json({ ok: false }, { status: 500 });
-  await ensurePrimaryTelegramWebhook(request, token);
+  // Webhook registration is maintenance work, never a prerequisite for
+  // handling the current update. Awaiting it made cold starts intermittently
+  // consume the whole Telegram delivery window.
+  void ensurePrimaryTelegramWebhook(request, token);
 
   const update = await request.json().catch(() => ({})) as TelegramUpdate;
   if (update.business_connection || update.business_message || update.callback_query?.data?.startsWith("pay:")) {
