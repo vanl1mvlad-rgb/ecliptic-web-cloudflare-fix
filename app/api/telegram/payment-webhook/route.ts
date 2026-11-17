@@ -225,6 +225,16 @@ function normalizeProductQuery(value: string) {
     .replace(/(^|\s)спотик(?:а|е|у)?(?=\s|$)/g, "$1spotify")
     .replace(/(^|\s)премк(?:а|у|е)?(?=\s|$)/g, "$1премиум")
     .replace(/(^|\s)звезд(?:а|ы|е|у|ой|ами)?(?=\s|$)/g, "$1звезды")
+    .replace(/(^|\s)(?:зывызды|звездочки|звездочк(?:а|и)|старс)(?=\s|$)/g, "$1звезды")
+    .replace(/(^|\s)(?:фри\s*фаер|фрифайер|фрифайр|фрифаир|ff)(?=\s|$)/g, "$1free fire")
+    .replace(/(^|\s)(?:стендофф?|стендоф|стендов|станофф|standoff2|so2|stn)(?=\s|$)/g, "$1standoff 2")
+    .replace(/(^|\s)(?:роблокс|роблок|рб|rb)(?=\s|$)/g, "$1roblox")
+    .replace(/(^|\s)(?:радмир|радмир\s*рп|radmir)(?=\s|$)/g, "$1radmir rp")
+    .replace(/(^|\s)(?:амазинг|амазинг\s*рп|amazing)(?=\s|$)/g, "$1amazing rp")
+    .replace(/(^|\s)(?:блэк\s*раша|блек\s*раша|блэк\s*руссия|черная\s*россия|чёрная\s*россия|black\s*russia|br)(?=\s|$)/g, "$1black russia")
+    .replace(/(^|\s)(?:форнайт|фортнайт)(?=\s|$)/g, "$1fortnite")
+    .replace(/(^|\s)(?:чат\s*gpt|чатгпт|чаджипити|чатжпт)(?=\s|$)/g, "$1chatgpt")
+    .replace(/(^|\s)(?:майнкрафт|маинкрафт|minecraft)(?=\s|$)/g, "$1minecraft")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -236,14 +246,76 @@ function isInstantPurchaseRequest(message: string, product?: Product) {
 }
 
 const PRODUCT_REQUEST_ALIASES: Record<string, string[]> = {
-  roblox: ["робукс", "робукса", "робуксов", "робуксы", "роблоксе", "robux"],
-  steam: ["стим"],
-  "telegram-stars": ["телеграм звезд", "телега звезд", "звезд", "звезды", "stars"],
-  "telegram-premium": ["телеграм премиум", "телега премиум", "тг прем", "tg premium", "tg prem", "премк", "премиум", "premium"],
-  "telegram-accounts": ["телеграм аккаунт", "телеграм аккаунты", "тг акк", "тг акки", "tg account", "tg acc"],
-  "spotify-premium": ["спотифай", "спотик", "spotify", "споти"],
-  "brawl-stars": ["brawl pass", "brawl pass plus", "бравл пасс", "бравл пас"],
+  netflix: ["нетфликс", "нетфлик", "netflix"],
+  "delta-force": ["дельта", "дельта форс", "delta force", "дф", "df"],
+  steam: ["стим", "steam"],
+  "telegram-stars": ["телеграм звезд", "телега звезд", "звезд", "звезды", "зывызды", "звездочки", "stars", "старс"],
+  "telegram-premium": ["телеграм премиум", "телега премиум", "тг прем", "tg premium", "tg prem", "премка", "премк", "премиум", "premium"],
+  "telegram-accounts": ["телеграм аккаунт", "телеграм аккаунты", "тг акк", "тг акки", "акки", "аккаунты", "tg account", "tg acc"],
+  "world-of-tanks": ["танки", "мир танков", "world of tanks", "wot"],
+  "chatgpt-plus": ["чатгпт", "чат gpt", "чаджипити", "чатжпт", "chatgpt", "chat gpt"],
+  "brawl-stars": ["бравл", "бравл старс", "бравл стар", "brawl", "brawl stars", "brawl pass", "brawl pass plus", "бравл пасс", "бравл пас"],
+  roblox: ["роблокс", "роблок", "роблоксe", "робукс", "робукса", "робуксов", "робуксы", "рб", "rb", "robux"],
+  "standoff-2": ["стендофф", "стендоф", "стендов", "станофф", "стано", "standoff", "standoff 2", "standoff2", "stn", "so2"],
+  tiktok: ["тик ток", "тикток", "тик ток", "tiktok", "тт"],
+  "youtube-premium": ["ютуб", "ютуб премиум", "youtube", "youtube premium"],
+  "spotify-premium": ["спотифай", "спотик", "споти", "spotify"],
+  "pubg-mobile": ["пабг", "пабджи", "пубг", "pubg", "пабг мобайл"],
+  "discord-nitro": ["дискорд", "дискорд нитро", "discord", "discord nitro"],
+  "mobile-legends": ["мобайл легендс", "мобайл легенд", "мл", "mobile legends"],
+  "clash-of-clans": ["клеш оф кланс", "клаш оф кланс", "кок", "clash of clans", "coc"],
+  "clash-royale": ["клеш рояль", "клаш рояль", "clash royale", "cr"],
+  "free-fire": ["фрифаер", "фри файер", "фрифайр", "фрифаир", "free fire", "ff"],
+  "gta-5-rp-majestic-rp": ["маджестик", "маджестик рп", "majestic", "majestic rp"],
+  "radmir-rp": ["радмир", "радмир рп", "radmir", "radmir rp"],
+  "amazing-rp": ["амазинг", "амазинг рп", "amazing", "amazing rp"],
+  "black-russia": ["блэк раша", "блек раша", "блэк руссия", "черная россия", "чёрная россия", "black russia", "br"],
+  "epic-games-topup": ["эпик геймс", "эпик", "epic games"],
+  fortnite: ["фортнайт", "форнайт", "fortnite"],
+  minecraft: ["майнкрафт", "маинкрафт", "майн", "minecraft", "mc"],
+  oxide: ["оксайд", "oxide"],
+  "site-topups": ["пополнение сайтов", "донат", "донат сайтов"],
+  "sbp-payment": ["сбп", "система быстрых платежей"],
+  nft: ["нфт", "nft"],
+  ton: ["тон", "ton"],
+  playstation: ["плейстейшен", "плейстейшн", "playstation"],
+  boosty: ["бусти", "boosty"],
+  twitch: ["твич", "twitch"],
+  "call-of-duty-mobile": ["колда", "код мобайл", "call of duty", "call of duty mobile", "codm"],
 };
+
+function levenshteinDistance(left: string, right: string) {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    let diagonal = previous[0];
+    previous[0] = row;
+    for (let column = 1; column <= right.length; column += 1) {
+      const above = previous[column];
+      previous[column] = Math.min(
+        previous[column] + 1,
+        previous[column - 1] + 1,
+        diagonal + (left[row - 1] === right[column - 1] ? 0 : 1),
+      );
+      diagonal = above;
+    }
+  }
+  return previous[right.length];
+}
+
+function matchesProductAlias(message: string, alias: string) {
+  const normalizedMessage = normalizeProductQuery(message);
+  const normalizedAlias = normalizeProductQuery(alias);
+  if (!normalizedAlias) return false;
+  if (normalizedMessage.includes(normalizedAlias)) return true;
+
+  const aliasTokens = normalizedAlias.split(" ").filter((token) => token.length >= 3);
+  if (aliasTokens.length !== 1) return false;
+  return normalizedMessage.split(" ").some((token) => {
+    if (token.length < 5 || Math.abs(token.length - aliasTokens[0].length) > 2) return false;
+    const limit = token.length >= 8 ? 2 : 1;
+    return levenshteinDistance(token, aliasTokens[0]) <= limit;
+  });
+}
 
 function parseOrderCode(orderCode: string) {
   const compact = orderCode.match(/^E-([A-Z0-9]{5})-(\d+|NA)-([A-Z0-9]{4})$/i);
@@ -459,7 +531,7 @@ async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrde
       product.slug.replace(/[-_]+/g, " "),
       ...(PRODUCT_REQUEST_ALIASES[product.slug] || []),
     ].map(normalizeProductQuery).filter(Boolean);
-    if (!aliases.some((alias) => normalizedMessage.includes(alias))) continue;
+    if (!aliases.some((alias) => matchesProductAlias(normalizedMessage, alias))) continue;
 
     const offers = product.offers.filter((offer): offer is Extract<Product["offers"][number], { priceRub: number }> =>
       offer.type !== "divider" && typeof offer.priceRub === "number" && offer.priceRub > 0
@@ -476,7 +548,7 @@ async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrde
       : undefined;
     const textualOffer = [...offers]
       .sort((left, right) => normalizeProductQuery(right.label).length - normalizeProductQuery(left.label).length)
-      .find((candidate) => normalizedMessage.includes(normalizeProductQuery(candidate.label)));
+      .find((candidate) => matchesProductAlias(normalizedMessage, candidate.label));
     const offer = budgetBundle ? undefined : textualOffer || offers.find((candidate) => {
       const quantityTokens = candidate.label.match(/\d+(?:[.,]\d+)?/g) || [];
       return quantityTokens.some((token) => messageQuantities.some(
