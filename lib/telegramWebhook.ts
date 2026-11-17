@@ -19,6 +19,7 @@ export async function ensurePrimaryTelegramWebhook(request: Request, botToken: s
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(3_000),
     });
 
     if (!response.ok) {
