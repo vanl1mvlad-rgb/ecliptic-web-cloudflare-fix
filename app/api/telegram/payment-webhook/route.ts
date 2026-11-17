@@ -225,7 +225,7 @@ function normalizeProductQuery(value: string) {
     .replace(/(^|\s)спотик(?:а|е|у)?(?=\s|$)/g, "$1spotify")
     .replace(/(^|\s)премк(?:а|у|е)?(?=\s|$)/g, "$1премиум")
     .replace(/(^|\s)звезд(?:а|ы|е|у|ой|ами)?(?=\s|$)/g, "$1звезды")
-    .replace(/(^|\s)(?:зывызды|звездочки|звездочк(?:а|и)|старс)(?=\s|$)/g, "$1звезды")
+    .replace(/(^|\s)(?:зывызды|заезд|заезды|звездочки|звездочк(?:а|и)|старс)(?=\s|$)/g, "$1звезды")
     .replace(/(^|\s)(?:фри\s*фаер|фрифайер|фрифайр|фрифаир|ff)(?=\s|$)/g, "$1free fire")
     .replace(/(^|\s)(?:стендофф?|стендоф|стендов|станофф|standoff2|so2|stn)(?=\s|$)/g, "$1standoff 2")
     .replace(/(^|\s)(?:роблокс|роблок|рб|rb)(?=\s|$)/g, "$1roblox")
@@ -249,7 +249,7 @@ const PRODUCT_REQUEST_ALIASES: Record<string, string[]> = {
   netflix: ["нетфликс", "нетфлик", "netflix"],
   "delta-force": ["дельта", "дельта форс", "delta force", "дф", "df"],
   steam: ["стим", "steam"],
-  "telegram-stars": ["телеграм звезд", "телега звезд", "звезд", "звезды", "зывызды", "звездочки", "stars", "старс"],
+  "telegram-stars": ["телеграм звезд", "телега звезд", "звезд", "звезды", "зывызды", "заезд", "заезды", "звездочки", "stars", "старс"],
   "telegram-premium": ["телеграм премиум", "телега премиум", "тг прем", "tg premium", "tg prem", "премка", "премк", "премиум", "premium"],
   "telegram-accounts": ["телеграм аккаунт", "телеграм аккаунты", "тг акк", "тг акки", "акки", "аккаунты", "tg account", "tg acc"],
   "world-of-tanks": ["танки", "мир танков", "world of tanks", "wot"],
@@ -549,12 +549,20 @@ async function resolveProductRequest(orderMessage: string): Promise<ResolvedOrde
     const textualOffer = [...offers]
       .sort((left, right) => normalizeProductQuery(right.label).length - normalizeProductQuery(left.label).length)
       .find((candidate) => matchesProductAlias(normalizedMessage, candidate.label));
+    const requestedStars = product.slug === "telegram-stars"
+      ? messageQuantities.map((value) => Number(value.replace(",", "."))).find((value) => value > 0)
+      : undefined;
+    const nearestStarsOffer = requestedStars
+      ? [...offers]
+        .filter((candidate) => offerQuantity(candidate.label) >= requestedStars)
+        .sort((left, right) => offerQuantity(left.label) - offerQuantity(right.label))[0]
+      : undefined;
     const offer = budgetBundle ? undefined : textualOffer || offers.find((candidate) => {
       const quantityTokens = candidate.label.match(/\d+(?:[.,]\d+)?/g) || [];
       return quantityTokens.some((token) => messageQuantities.some(
         (messageQuantity) => Number(messageQuantity.replace(",", ".")) === Number(token.replace(",", "."))
       ));
-    })
+    }) || nearestStarsOffer
       || (hasOfferQualifier && offers.length === 1 ? offers[0] : undefined);
     if (!budgetBundle && !offer) {
       // A recognized product name is enough to return its canonical page link,
